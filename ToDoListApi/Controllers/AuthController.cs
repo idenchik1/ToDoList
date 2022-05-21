@@ -27,6 +27,8 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
+    [Consumes("application/json")]
+    [Produces("application/json")]
     public async Task<ActionResult<Token>> Login(UserAuth user)
     {
         var token = GenerateToken(user.username, user.password);
@@ -36,6 +38,8 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
+    [Consumes("application/json")]
+    [Produces("application/json")]
     public async Task<ActionResult<Token>> Register(UserAuth user)
     {
         if (user.username.Length > 32 || user.password.Length > 128)
