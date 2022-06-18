@@ -39,7 +39,7 @@ builder.Services.AddSwaggerGen(options =>
 {
     var securitySchema = new OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+        Description = "JWT",
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.Http,
@@ -93,5 +93,10 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+using (var scope = app.Services.CreateScope())
+using (var context = scope.ServiceProvider.GetService<ToDoListContext>())
+{
+    context.Database.EnsureCreated();
+}
 
 app.Run();
