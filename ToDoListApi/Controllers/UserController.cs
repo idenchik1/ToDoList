@@ -35,16 +35,19 @@ public class UserController : ControllerBase
     [HttpGet("IsAuthed")]
     public async Task<ActionResult> GetIsAuthed()
     {
-        return Ok();
+        var userId = int.Parse(User.Identity.Name);
+        if (_context.Users.Any(user => user.UserId == userId))
+            return Ok();
+        return Unauthorized();
     }
 
     [Authorize]
-    [HttpGet("GetTasks/{id:int}")]
-    public async Task<ActionResult<ICollection<Task>>> GetTasks(int id)
+    [HttpGet("GetTasks/{listId:int}")]
+    public async Task<ActionResult<ICollection<Task>>> GetTasks(int listId)
     {
         var userId = int.Parse(User.Identity.Name);
         var list = await _context.Lists.Include(selectedList => selectedList.Tasks)
-            .FirstOrDefaultAsync(list => list.ListId == id && list.ListOwner == userId);
+            .FirstOrDefaultAsync(list => list.ListId == listId && list.ListOwner == userId);
         if (list != null)
             return Ok(list.Tasks);
         return BadRequest(new ErrorMessage(new List<string> { "No list" }));
@@ -89,7 +92,7 @@ public class UserController : ControllerBase
             return BadRequest(new ErrorMessage(new List<string> { "No list" }));
         _context.Tasks.Add(new Task
         {
-            TaskContent = task.taskContent,
+            TaskContent = task.TaskContent,
             TaskList = listId
         });
         await _context.SaveChangesAsync();
@@ -98,7 +101,7 @@ public class UserController : ControllerBase
 
     [Authorize]
     [HttpDelete("DeleteTask/{taskId:int}")]
-    private async Task<ActionResult> DeleteTask(int taskId)
+    public async Task<ActionResult> DeleteTask(int taskId)
     {
         var userId = int.Parse(User.Identity.Name);
         var task = await _context.Tasks.Include(task => task.TaskListNavigation)
@@ -112,7 +115,7 @@ public class UserController : ControllerBase
 
     [Authorize]
     [HttpDelete("DeleteList/{listId:int}")]
-    private async Task<ActionResult> DeleteList(int listId)
+    public async Task<ActionResult> DeleteList(int listId)
     {
         var userId = int.Parse(User.Identity.Name);
         var list = await _context.Lists.FirstOrDefaultAsync(selectedList => selectedList.ListId == listId);
@@ -125,9 +128,15 @@ public class UserController : ControllerBase
 
     [Authorize]
     [HttpPut("EditTask/{taskId:int}")]
-    private User EditTask(int taskId)
+    public async Task<ActionResult> EditTask(TaskCreate newTask, int taskId)
     {
-        throw new NotImplementedException();
-        // return _context.Users.Include(user => user.Lists).First(user => user.UserId == id);
+        var userId = int.Parse(User.Identity.Name);
+        var task = await _context.Tasks.Include(task => task.TaskListNavigation)
+            .FirstOrDefaultAsync(selectedList => selectedList.TaskId == taskId);
+        if (task == null || task.TaskListNavigation.ListOwner != userId)
+            return BadRequest(new ErrorMessage(new List<string> { "No task" }));
+        task.TaskContent = newTask.TaskContent;
+        await _context.SaveChangesAsync();
+        return Ok();
     }
 }
