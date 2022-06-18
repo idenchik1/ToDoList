@@ -16,7 +16,10 @@ public class ErrorFilter : ActionFilterAttribute
 
             var responseObj = new ErrorMessage(errors);
 
-            context.Result = new JsonResult(responseObj);
+            context.Result = new JsonResult(responseObj)
+            {
+                StatusCode = 400
+            };
         }
     }
 }

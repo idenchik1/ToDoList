@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Entities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
@@ -8,8 +9,18 @@ using ToDoListApi;
 using ToDoListApi.Model;
 
 var builder = WebApplication.CreateBuilder(args);
-
+var origins = "_origins";
 // Add services to the container.
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(origins,
+        policy =>
+        {
+            policy.WithOrigins("*");
+            policy.WithHeaders("*");
+            policy.WithMethods("*");
+        });
+});
 builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
 builder.Services.AddControllers();
 builder.Services.AddDbContext<ToDoListContext>(options =>
@@ -18,6 +29,11 @@ builder.Services.AddDbContext<ToDoListContext>(options =>
     options.UseModel(ToDoListContextModel.Instance);
 });
 builder.Services.AddMvc(options => options.Filters.Add(typeof(ErrorFilter)));
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.WriteIndented = true;
+    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+});
 builder.Services.Configure<ApiBehaviorOptions>(options => { options.SuppressModelStateInvalidFilter = true; });
 builder.Services.AddSwaggerGen(options =>
 {
@@ -65,15 +81,14 @@ builder.Services.AddEndpointsApiExplorer();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-/*if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
-}*/
-app.UseSwagger();
-app.UseSwaggerUI();
-app.UseHttpsRedirection();
+}
 
+app.UseHttpsRedirection();
+app.UseCors(origins);
 app.UseAuthentication();
 app.UseAuthorization();
 

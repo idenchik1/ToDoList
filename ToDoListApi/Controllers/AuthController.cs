@@ -12,6 +12,8 @@ namespace ToDoListApi.Controllers;
 
 [Route("api/auth")]
 [ApiController]
+[Consumes("application/json")]
+[Produces("application/json")]
 public class AuthController : ControllerBase
 {
     private readonly ToDoListContext _context;
@@ -26,9 +28,7 @@ public class AuthController : ControllerBase
             RegexOptions.Compiled);
     }
 
-    [HttpPost("login")]
-    [Consumes("application/json")]
-    [Produces("application/json")]
+    [HttpPost("Login")]
     public async Task<ActionResult<Token>> Login(UserAuth user)
     {
         var token = GenerateToken(user.username, user.password);
@@ -37,14 +37,9 @@ public class AuthController : ControllerBase
         return Unauthorized(new ErrorMessage(new List<string> { "Wrong username or password" }));
     }
 
-    [HttpPost("register")]
-    [Consumes("application/json")]
-    [Produces("application/json")]
+    [HttpPost("Register")]
     public async Task<ActionResult<Token>> Register(UserAuth user)
     {
-        if (user.username.Length > 32 || user.password.Length > 128)
-            return BadRequest(new ErrorMessage(new List<string> { "Username or password is too large" }));
-
         if (_usernameCheck.IsMatch(user.username) && _passwordCheck.IsMatch(user.password))
         {
             if (UserExists(user.username))
@@ -63,7 +58,7 @@ public class AuthController : ControllerBase
             return Ok(token);
         }
 
-        return BadRequest(new ErrorMessage(new List<string> { "Login or password is incorrect" }));
+        return BadRequest(new ErrorMessage(new List<string> { "Username or password is incorrect" }));
     }
 
     private Token? GenerateToken(string username, string password)
@@ -86,11 +81,6 @@ public class AuthController : ControllerBase
     private bool UserExists(string username)
     {
         return (_context.Users?.Any(e => e.UserName == username)).GetValueOrDefault();
-    }
-
-    private User GetUser(int id)
-    {
-        return _context.Users.First(user => user.UserId == id);
     }
 
     private ClaimsIdentity? GetIdentity(string username, string password)
