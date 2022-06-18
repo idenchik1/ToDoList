@@ -7,8 +7,8 @@ using Task = ToDoListApi.Entities.Task;
 
 namespace ToDoListApi.Controllers;
 
-[Route("api/user")]
 [ApiController]
+[Route("api/user")]
 public class UserController : ControllerBase
 {
     private readonly ToDoListContext _context;
@@ -16,6 +16,11 @@ public class UserController : ControllerBase
     public UserController(ToDoListContext context)
     {
         _context = context;
+    }
+
+    private User GetUser(int id)
+    {
+        return _context.Users.Include(user => user.Lists).First(user => user.UserId == id);
     }
 
     [Authorize]
@@ -92,9 +97,37 @@ public class UserController : ControllerBase
     }
 
     [Authorize]
-    [HttpDelete("DeleteList/{}")]
-    private User GetUser(int id)
+    [HttpDelete("DeleteTask/{taskId:int}")]
+    private async Task<ActionResult> DeleteTask(int taskId)
     {
-        return _context.Users.Include(user => user.Lists).First(user => user.UserId == id);
+        var userId = int.Parse(User.Identity.Name);
+        var task = await _context.Tasks.Include(task => task.TaskListNavigation)
+            .FirstOrDefaultAsync(selectedList => selectedList.TaskId == taskId);
+        if (task == null || task.TaskListNavigation.ListOwner != userId)
+            return BadRequest(new ErrorMessage(new List<string> { "No task" }));
+        _context.Tasks.Remove(task);
+        await _context.SaveChangesAsync();
+        return Ok();
+    }
+
+    [Authorize]
+    [HttpDelete("DeleteList/{listId:int}")]
+    private async Task<ActionResult> DeleteList(int listId)
+    {
+        var userId = int.Parse(User.Identity.Name);
+        var list = await _context.Lists.FirstOrDefaultAsync(selectedList => selectedList.ListId == listId);
+        if (list == null || list.ListOwner != userId)
+            return BadRequest(new ErrorMessage(new List<string> { "No list" }));
+        _context.Lists.Remove(list);
+        await _context.SaveChangesAsync();
+        return Ok();
+    }
+
+    [Authorize]
+    [HttpPut("EditTask/{taskId:int}")]
+    private User EditTask(int taskId)
+    {
+        throw new NotImplementedException();
+        // return _context.Users.Include(user => user.Lists).First(user => user.UserId == id);
     }
 }
